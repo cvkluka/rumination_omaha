@@ -5,14 +5,15 @@ import os
 import sys
 from string import Template
 import datetime
-#import cgitb
-#cgitb.enable()
+import cgitb
+cgitb.enable()
 
 import media_archives
 
 from config_upload import email_from, upload_default, upload_form, upload_end, upload_base
 
-'''Bulletin uploads are treated differently (merge later); bulletin names coordinated with Parish office'''
+'''Bulletin uploads are treated differently (merge later); bulletin names coordinated with Parish office;
+to do: throw an error if the filename has no extension.'''
 
 form = cgi.FieldStorage()
 fields = {}
@@ -35,7 +36,7 @@ def clean_filenames(fn_name):
         else:
             short.append(c)
             
-    clean_fn = ''.join(short)[:45]
+    clean_fn = ''.join(short)[:55]
     
     if len(clean_fn) >= 2: 
         
@@ -49,7 +50,7 @@ def clean_extension(ext):
     if ext.lower() == 'jpeg':
         identifiers.append('.jpg')        
                 
-    elif ext.lower() in ['.txt', '.pdf', '.jpg', '.gif', '.png']:
+    elif ext.lower() in ['.txt', '.pdf', '.jpg', '.gif', '.png', '.mp3']:
         identifiers.append(ext.lower()) 
         
     if len(identifiers) > 0:
@@ -58,9 +59,7 @@ def clean_extension(ext):
         
         return extension
         
-        
-
-def find_errors(sub_flds, submit_sequence, submit2_name):
+def find_errors(sub_flds, submit_sequence, file_name2):
     
     #form_list = ['upload_dir', 'file_properties', 'file_name1', 'file_size']
     errors = []
@@ -87,7 +86,7 @@ def find_errors(sub_flds, submit_sequence, submit2_name):
             elif len(sub_flds['file_name1']) < 2:
                 errors.append('File name error!')  
                 
-            if submit2_name in ['', 'noSpaces_noExtension', 'spaces_noExtension']:
+            if file_name2 in ['', 'noSpaces_noExtension', 'spaces_noExtension']:
                 errors.append('File name or extension missing or corrupt.')
                 
             if sub_flds['file_size'] == '':
@@ -102,20 +101,15 @@ def find_errors(sub_flds, submit_sequence, submit2_name):
                              
     return errors
 
-def upload_file(mpath, mfolder, file_content, file_name2):
+def upload_file(mfolder, mpath, file_content, file_name2):
     
     fdest = os.path.join(mpath, file_name2)   
     fout = file(fdest, 'wb')
     fout.write(file_content) 
     
-    #media_folders = ['Altar', 'Apostolate', 'Bulletins', 'Education', 'Youth']
-    if mfolder == 'Bulletins':
-        bulletin_dates = media_archives.parse_bulletins(mpath)
-        media_archives.update_index(mpath, mfolder, file_dates=bulletin_dates)
-    else:
-        file_dates = media_archives.parse_files(mpath)
-        media_archives.update_index(mpath, mfolder, file_dates)    
-    
+    #media_folders = ['Altar', 'Apostolado', 'Bulletins', 'Education', 'Homilies', 'Youth']
+    media_archives.launch_update(mfolder, mpath)
+        
     title_msg = ('Your file <b>{0}</b> was successfully uploaded to the <b>{1}</b> folder.'.format(file_name2, mfolder))
     index_link = ('Return to your <a href="/shc/media/users/{0}/index.html">document index</a>'.format(mfolder))     
     
@@ -193,7 +187,6 @@ def read_upload(**kw):
 def rename_bulletin(file_name1):
     
     bulletin_name = '' 
-    #Bulletin 06-24-2018 12th Sun Ord.pdf, 'Bulletin  01-06-2019 Epiphany.pdf' 
     fn_list = file_name1.split('.')
     if ' ' in fn_list[0]:
         fn_nameList = fn_list[0].split(' ')
@@ -258,11 +251,11 @@ if __name__ == "__main__":
                     
     print "Content-type: text/html\n\n"
     
-    max_size = (5 * 1024 * 1024)   #5 MB
+    max_size = (20 * 1024 * 1024)   #20 MB
     min_size = 10
     form_list = ['upload_dir', 'file_properties', 'file_name1', 'file_size']
     sub_flds = {'upload_dir':'', 'file_properties':'', 'file_name1':'', 'file_size':''}       
-    media_folders = ['Altar', 'Apostolate', 'Bulletins', 'Education', 'Youth']
+    media_folders = ['Altar', 'Apostolado', 'Bulletins', 'Education', 'Homilies', 'Letters', 'Youth']
     
     if 'Submit1' in form:
         
@@ -270,7 +263,7 @@ if __name__ == "__main__":
         #upload_dir is a hidden value in the upload_form 
         upload_dir = sub_flds['upload_dir']
         submit_sequence = 'Submit1'
-        errors = find_errors(sub_flds, submit_sequence, submit2_name='')
+        errors = find_errors(sub_flds, submit_sequence, file_name2='')
   
         if len(errors) > 0:
             title_msg = ' '.join(errors)
@@ -290,6 +283,7 @@ if __name__ == "__main__":
                         
             except IOError:
                 print('Could not open form! Please contact {0}'.format(email_from)) 
+                #print '{0}'.format(upload_form)
                 sys.exit(1) 
            
     elif 'Submit2' in form:
@@ -304,9 +298,9 @@ if __name__ == "__main__":
             if mfolder == upload_dir:
                 mpath = os.path.join(upload_base, mfolder)  
   
-                if file_name1.startswith('Bulletin'):
+                if 'Bulletin' in file_name1:
                     bulletin_name = rename_bulletin(file_name1)
-                    errors = find_errors(sub_flds, submit_sequence, submit2_name=bulletin_name)
+                    errors = find_errors(sub_flds, submit_sequence, file_name2=bulletin_name)
                 
                     if len(errors) > 0:
                         title_msg = ' '.join(errors) 
@@ -319,11 +313,11 @@ if __name__ == "__main__":
                             sys.exit(1)  
                         
                     else:
-                        upload_file(mpath, upload_dir, file_content, file_name2=bulletin_name)    
+                        upload_file(mfolder, mpath, file_content, file_name2=bulletin_name)    
                         
                 else:
                     file_name2 = rename_file(file_name1)
-                    errors = find_errors(sub_flds, submit_sequence, submit2_name=file_name2)
+                    errors = find_errors(sub_flds, submit_sequence, file_name2)
                     if len(errors) > 0:
                         title_msg = ' '.join(errors) 
                         try:
@@ -335,7 +329,7 @@ if __name__ == "__main__":
                             sys.exit(1)  
                             
                     else:
-                        upload_file(mpath, upload_dir, file_content, file_name2)
+                        upload_file(mfolder, mpath, file_content, file_name2)
                        
     else:
         #load the default page
