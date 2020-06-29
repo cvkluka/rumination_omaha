@@ -476,8 +476,8 @@ def edit_day(start_date, title_msg, end_date, events_all, ID):
         sys.exit(1)          
 
 
-def confirm_page(f1, f2, title_msg):
-
+def confirm_page(f1, f2, title_msg):   
+    
     act_confirm = os.path.join(base_path, 'calendar/control/activity/act_confirm.html')
     confirm_actheader = os.path.join(base_path, 'calendar/forms/confirm_actheader.html')
 
@@ -501,13 +501,16 @@ def confirm_page(f1, f2, title_msg):
         print(t.substitute(title_msg=title_msg,month_path=actcon_this_month))
 
     except IOError:
-        print 'Could not read the form! Please contact {0}'.format(email_from)
+        print('Could not read the form! Please contact {0}'.format(email_from))
         sys.exit(1)  
-
+        
     for m in [f1, f2]:
-        date_start = m.replace(day=1)
-        act_mgmt.cal_page(date_start, abs_paths)                                    
-
+        #limited to 2 months, enough for now
+        dtg = m.replace(day=1)
+        month_start = datetime.datetime.strftime(dtg, '%Y-%m-%d')
+        #act_mgmt will copy the headers and retrieve sqlite data
+        act_mgmt.copy_header(dtg, month_start)    
+    
     mail_list = []
     mail_msg = title_msg.replace('<br/>', '\n')
     mail_list.append(mail_msg)
@@ -518,7 +521,7 @@ def confirm_page(f1, f2, title_msg):
     email_envoi.write(email_message)
     email_envoi.write('\n')
     email_envoi.close()
-    email_out.send_email(email_from, email_to, email_subject)         
+    #email_out.send_email(email_from, email_to, email_subject)         
 
 if __name__ == "__main__":
 

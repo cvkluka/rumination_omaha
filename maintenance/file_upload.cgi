@@ -5,8 +5,8 @@ import os
 import sys
 from string import Template
 import datetime
-import cgitb
-cgitb.enable()
+#import cgitb
+#cgitb.enable()
 
 import media_archives
 
@@ -20,7 +20,7 @@ fields = {}
 
 def clean_filenames(fn_name):
     
-    bad_chars = [":", " ", "@", "#", "'", "(", ")", "[", "]", "{", "}", "/"]
+    bad_chars = [":", " ", "@", "#", "'", "(", ")", "[", "]", "{", "}", "/", ","]
     short = []
     for c in fn_name:
         
@@ -87,7 +87,7 @@ def find_errors(sub_flds, submit_sequence, file_name2):
                 errors.append('File name error!')  
                 
             if file_name2 in ['', 'noSpaces_noExtension', 'spaces_noExtension']:
-                errors.append('File name or extension missing or corrupt.')
+                errors.append('File extension not accepted!')
                 
             if sub_flds['file_size'] == '':
                 errors.append('File content not read!')

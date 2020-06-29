@@ -11,8 +11,8 @@ from string import Template
 import cgi
 import shutil
 
-import cgitb
-cgitb.enable()
+#import cgitb
+#cgitb.enable()
 
 from config_cal import db_sign, psn_form, hsp_form, psn_header
 from config_alert import email_from, correlate, sign_remove, relaciones

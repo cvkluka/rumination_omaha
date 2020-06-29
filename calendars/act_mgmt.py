@@ -96,11 +96,13 @@ def get_endTime(end_str):
         return time_endfmt
 
 
-def cell_content(cal_path, date_start, cal_day, cur_day):
+def cell_content(cal_path, cal_day, cur_day):
+    
     '''act_schedule db table (Event_Start, Event_End, Activity, Event_Location, Show_Loc, Show_Time)'''
     
     content_list = []
     hd_data = hd_table()
+    month_object = cur_day.replace(day=1)
     act_date = read_actdb()
     
     for hd in hd_data: 
@@ -126,11 +128,10 @@ def cell_content(cal_path, date_start, cal_day, cur_day):
                 time_startfmt = datetime.datetime.strftime(dtg, "%-I:%M %p") 
                 time_endfmt = get_endTime(end_str)
                 show_loc = act_values[4]
-        
-                if dtg.date() >= cur_day:
+         
+                if 'control' in cal_path:     
                     
-                    if 'control' in cal_path:        
-                        
+                    if cal_day >= month_object:                    
                         content_list.append('{0} - {1}<br/>'.format(time_startfmt, time_endfmt))    
        
                         #link the activity  
@@ -151,35 +152,27 @@ def cell_content(cal_path, date_start, cal_day, cur_day):
                             content_list.append('{0}<br/>\n'.format(activity))  
                             
                 else:
-                    #control events are in the past, use italic font; date_start is 1st day of previous month
+                    #control events are in the past, use italic font; 
                     content_list.append('<i>{0}<br/>{1} <br/></i>\n'.format(time_startfmt, activity))                   
-                                
-                    if len(content_list) == 0:
-                        #there's nothing in the event db for that day; print empty cell
-                        content_list.append('')
         
-    if cal_day >= cur_day:
-        if 'control' in cal_path:
-            #print 'cal_day len?', cal_day, len(content_list)
+    if 'control' in cal_path:
+        if cal_day >= month_object:                        
+            
             if len(content_list) >= 3:
                 content_list.append('<br/><a class="page" href="/shc/akc/edit_act.cgi?start_date={0}">Add Activity</a>\n'.format(cal_day)) 
             else:
+                #Add empty lines if the day is empty
                 content_list.append('<br/><br/><a class="page" href="/shc/akc/edit_act.cgi?start_date={0}">Add Activity</a>\n'.format(cal_day)) 
-       
-        else:
-            #public/open view
-            if len(content_list) == 0:
-                content_list.append('')      
 
     return content_list
     
 
-def month_content(date_start, month_name, cal_path):
+def month_content(dtg, month_name, cal_path):
               
     cur_day = datetime.date.today() 
     act_date = read_actdb()
     calendar.setfirstweekday(6) 
-    calobject = calendar.monthcalendar(date_start.year, date_start.month)
+    calobject = calendar.monthcalendar(dtg.year, dtg.month)
     nweeks = len(calobject) 
     target = open(cal_path, 'a')
 
@@ -195,87 +188,60 @@ def month_content(date_start, month_name, cal_path):
                 target.write('<td align="center"><table width="140"><tr><td class="num"></td></tr>\n')
                 target.write('<tr><td class="weekday">&nbsp;</td></tr></table></td>\n') 
             else:
-                cal_day = datetime.date(date_start.year, date_start.month, day)
-                content_list = cell_content(cal_path, date_start, cal_day, cur_day)
-                content_str = ' '.join(content_list)
-                       
-                if cal_day == cur_day: 
-                    #set day number in red;
-                    target.write('<td align="center"><table width="140"><tr><td class="number">{0}</td></tr>\n'.format(day)) 
-                    target.write('<tr><td class="weekday">{0}</td></tr></table></td>\n'.format(content_str))    
+                cal_day = datetime.date(dtg.year, dtg.month, day)
+                content_list = cell_content(cal_path, cal_day, cur_day)
+                if content_list and len(content_list) > 0:
+                    content_str = ''.join(content_list)       
+                    if cal_day == cur_day: 
+                        #set day number in red;
+                        target.write('<td align="center"><table width="140"><tr><td class="number">{0}</td></tr>\n'.format(day)) 
+                        target.write('<tr><td class="weekday">{0}</td></tr></table></td>\n'.format(content_str))    
+                    else:
+                        target.write('<td align="center"><table width="140"><tr><td class="num">{0}</td></tr>\n'.format(day))
+                        target.write('<tr><td class="weekday">{0}</td></tr></table></td>\n'.format(content_str))  
+                                                                                                   
                 else:
+                    #no events
                     target.write('<td align="center"><table width="140"><tr><td class="num">{0}</td></tr>\n'.format(day))
-                    target.write('<tr><td class="weekday">{0}</td></tr></table></td>\n'.format(content_str))                      
-
+                    target.write('<tr><td class="weekday"></td></tr></table></td>\n') 		                                                                                         
     target.write('</table><br/></body></html>')  
     target.close() 
     
-    if date_start.year == cur_day.year and date_start.month == cur_day.month:
-        current_control = os.path.join(base_path, 'calendar/control/activity/{0}/{1}.html'.format(date_start.year, month_name))  
+    if dtg.year == cur_day.year and dtg.month == cur_day.month:
+        current_control = os.path.join(base_path, 'calendar/control/activity/{0}/{1}.html'.format(dtg.year, month_name))  
         default_control = os.path.join(base_path, 'calendar/control/activity/current_month.html')
         run_copy(current_month=current_control, current_default=default_control) 
 
-        current_open = os.path.join(base_path, 'calendar/activity/{0}/{1}.html'.format(date_start.year, month_name))
+        current_open = os.path.join(base_path, 'calendar/activity/{0}/{1}.html'.format(dtg.year, month_name))
         default_open = os.path.join(base_path, 'calendar/activity/current_month.html')
-        run_copy(current_month=current_open, current_default=default_open)      
+        run_copy(current_month=current_open, current_default=default_open)  
+        
+def copy_header(dtg, month_start):
 
-
-def cal_page(date_start, abs_paths):
-
-    '''calendar page headers'''
-    month_name = date_start.strftime("%B")   
+    #dtg is a month object for first day of month; month_start is a string
+    month_name = dtg.strftime("%B")    
     parser = SafeConfigParser()
-    parser.read(months_ini) #reads the path  
+    parser.read(months_ini) 
 
-    ini_header = '{0}'.format(date_start)
-    html_header = headers.page_header(label='Activity')    
+    html_header = headers.page_header(label='Liturgy')  
+    assoc_paths = {'actopen_abs':'actopen_head', 'actcon_abs':'actcon_head'}
 
-    for cal_path in abs_paths:    
-        for section in parser.sections():
-            if section == ini_header:
-                if cal_path == 'actcon_abs':
-                    actcon_abs = parser.get(ini_header, 'actcon_abs')
-                    actcon_prev = parser.get(ini_header, 'actcon_prev')
-                    actcon_cur = parser.get(ini_header, 'actcon_cur')
-                    actcon_next = parser.get(ini_header, 'actcon_next')
-                    litcon_cur = parser.get(ini_header, 'litcon_cur')       
+    for cal_path in assoc_paths: 
+        for section_date in parser.sections():
+            if section_date == month_start:
+                abs_path = parser.get(section_date, cal_path)  
+                header_path = parser.get(section_date, assoc_paths[cal_path])
 
-                    actcon_sub = '''<table class="titre" width="1000" align="center"><tr>
-                        <td class="nav" width="20"><a href="%(0)s"><img src="/shc/images/prev.png"/></a></td>\n
-                        <td width="300" class="highlt"><b>%(1)s %(2)s</b></td>\n
-                        <td class="header" width="200" align="center"><a class="page" href="%(3)s"><b>Liturgy Calendar</b></a></td>\n
-                        <td class="highlt" width="200" align="center"><a class="page" href="%(4)s">Activity Calendar</a></td>\n
-                        <td class="header" width="200" align="center"><a class="page" href="/">Home</a></td>\n               
-                        <td class="nav" width="20"><a href="%(5)s"><img src="/shc/images/next.png"/></a></td></tr></table>\n ''' % {'0':actcon_prev, '1':month_name, '2':date_start.year, '3':litcon_cur, '4':actcon_cur, '5':actcon_next}        
+                target = open(abs_path, 'w')
 
-                    target_actcon = open(actcon_abs, 'w') 
-                    target_actcon.write(html_header)
-                    target_actcon.write(actcon_sub)
-                    target_actcon.write(weekday_cols)
-                    target_actcon.close()    
+                try:
+                    shutil.copyfileobj(open(header_path, 'rb'), target)
 
-                    #add table cells with db content 
-                    month_content(date_start, month_name, cal_path=actcon_abs)
+                except IOError:
+                    print('Could not read the form! Please contact {0}'.format(email_from))
+                    sys.exit(1)  
 
-                elif cal_path == 'actopen_abs':      
-                    actopen_abs = parser.get(ini_header, 'actopen_abs')
-                    actopen_prev = parser.get(ini_header, 'actopen_prev')
-                    actopen_cur = parser.get(ini_header, 'actopen_cur')
-                    actopen_next = parser.get(ini_header, 'actopen_next')
-                    litopen_cur = parser.get(ini_header, 'litopen_cur')      
+                target.close()
+                month_content(dtg, month_name, cal_path=abs_path)
 
-                    actopen_sub = '''<table class="titre" width="1000" align="center"><tr>
-                        <td class="nav" width="20"><a href="%(0)s"><img src="/shc/images/prev.png"/></a></td>\n
-                        <td width="300" class="highlt"><b>%(1)s %(2)s</b></td>\n
-                        <td class="header" width="200" align="center"><a class="page" href="%(3)s"><b>Liturgy Calendar</b></a></td>\n
-                        <td class="highlt" width="200" align="center"><a class="page" href="%(4)s">Activity Calendar</a></td>\n
-                        <td class="header" width="200" align="center"><a class="page" href="/">Home</a></td>\n               
-                        <td class="nav" width="20"><a href="%(5)s"><img src="/shc/images/next.png"/></a></td></tr></table>\n''' % {'0':actopen_prev, '1':month_name, '2':date_start.year, '3':litopen_cur, '4':actopen_cur, '5':actopen_next}   
 
-                    target_actopen = open(actopen_abs, 'w') 
-                    target_actopen.write(html_header)
-                    target_actopen.write(actopen_sub)
-                    target_actopen.write(weekday_cols)
-                    target_actopen.close()
-
-                    month_content(date_start, month_name, cal_path=actopen_abs)

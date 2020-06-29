@@ -103,10 +103,9 @@ def copy_bulletin(mpath, file_dates):
 				os.remove(dst_bulletin)
 				os.symlink(src_bulletin, dst_bulletin)
 			else:
-				#no link exists
 				os.symlink(src_bulletin, dst_bulletin)
 		else:
-			print 'Source path for {0} does not exist, exiting'.format(fn)
+			print('Source path for {0} does not exist, exiting'.format(fn))
 
 def copy_homily(mpath, file_dates):
 
@@ -129,7 +128,7 @@ def copy_homily(mpath, file_dates):
 				os.symlink(dst_fn_path, dst_homily_path)
 
 def update_index(mfolder, mpath, target, file_dates):
-
+	
 	cur_day = datetime.date.today() 
 	months_ago = cur_day - relativedelta(months=3)  
 	months_dt = datetime.datetime.combine(months_ago, datetime.time.min)
@@ -174,15 +173,12 @@ def update_index(mfolder, mpath, target, file_dates):
 							#file is older than 12 days, move outside web path/advise user to request audio file
 							if os.path.exists(audio_path): 
 								audio_dest = os.path.join(homily_archive, fn)
-								#print audio_path, audio_dest
 								shutil.move(audio_path, audio_dest)
 								target.write('<td><a href="/shc/akc/request_audio.cgi?audio_file={0}">Request audio</td></tr>\n'.format(audio_file))
 							else:
 								target.write('<td><a href="/shc/akc/request_audio.cgi?audio_file={0}">Request audio</td></tr>\n'.format(audio_file))
 					else:
 						pdf_dest = os.path.join(homily_archive, fn)
-						#print 'moving {0} to \n {1}'.format(pdf_file, pdf_dest)
-						#print 'start {0} and \n end {1}'.format(display_date, days_limit)
 						shutil.move(pdf_file, pdf_dest)
 
 			target.write('</table></body></html>')
@@ -223,7 +219,7 @@ def launch_update(mfolder, mpath):
 
 	mpath_index = os.path.join(mpath, 'index.html')  
 	target = open(mpath_index, 'w')
-	labels = {'Altar':'Altar Server Archives', 'Apostolado':'Archivos', 'Education':'Education Archives', 'Homilies':'Homily Archives', 'Letters':'Letters to the Parish', 'Youth':'Youth Archives'}
+	labels = {'Altar':'Altar Server Archives', 'Apostolado':'Archivos', 'Bulletins':'Bulletin Archives', 'Education':'Education Archives', 'Homilies':'Homily Archives', 'Letters':'Letters to the Parish', 'Youth':'Youth Archives'}
 	
 	if mfolder in mpath:
 		for key in labels:

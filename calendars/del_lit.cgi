@@ -10,8 +10,8 @@ from string import Template
 import sqlite3 as sqlite
 import shutil
 import cgi
-import cgitb
-cgitb.enable()
+#import cgitb
+#cgitb.enable()
 
 from types import ListType
 
